@@ -1,0 +1,17 @@
+package sudoku
+
+type Board [9][9]int
+
+func New() Board {
+	return Board{}
+}
+
+func Get(board Board, row, col int) int {
+	return board[row][col]
+}
+
+func Set(board Board, row, col, val int) Board {
+	b := board
+	b[row][col] = val
+	return b
+}
