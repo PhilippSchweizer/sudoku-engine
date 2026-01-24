@@ -11,6 +11,9 @@ func Get(board Board, row, col int) int {
 }
 
 func Set(board Board, row, col, val int) Board {
+	if val < 0 || val > 9 {
+		return board
+	}
 	b := board
 	b[row][col] = val
 	return b
