@@ -21,7 +21,6 @@ func BoardValid(b Board) bool {
 		}
 	}
 
-	// TODO: boxes
 	for box := range 9 {
 		br := (box / 3) * 3
 		bc := (box % 3) * 3
@@ -37,6 +36,17 @@ func BoardValid(b Board) bool {
 	return true
 }
 
+func BoardSolved(b Board) bool {
+	for r := range 9 {
+		for c := range 9 {
+			if b[r][c] == 0 {
+				return false
+			}
+		}
+	}
+	return BoardValid(b)
+}
+
 func hasDuplicateInUnit(unit [9]int) bool {
 	seen := [9]bool{}
 	for _, v := range unit {
@@ -50,11 +60,4 @@ func hasDuplicateInUnit(unit [9]int) bool {
 		}
 	}
 	return false
-	/* for i := 0; i < len(unit)-1; i++ {
-		for j := i + 1; j < len(unit); j++ {
-			if unit[i] == unit[j] {
-				return true
-			}
-		}
-	} */
 }
