@@ -12,7 +12,8 @@ func Solve(b Board) (Board, bool) {
 	var emptyCell [2]int = findNextEmpty(b)
 
 	for c := 1; c <= 9; c++ {
-		newBoard := Set(b, emptyCell[0], emptyCell[1], c)
+		newBoard := b
+		newBoard.SetCell(emptyCell[0], emptyCell[1], c)
 		solvedBoard, solved := Solve(newBoard)
 		if solved {
 			return solvedBoard, true
@@ -38,7 +39,8 @@ func CountSolutions(b Board) int {
 	count := 0
 
 	for c := 1; c <= 9; c++ {
-		newBoard := Set(b, emptyCell[0], emptyCell[1], c)
+		newBoard := b
+		newBoard.SetCell(emptyCell[0], emptyCell[1], c)
 		subCount := CountSolutions(newBoard)
 		count += subCount
 		if count >= 2 {
@@ -49,9 +51,9 @@ func CountSolutions(b Board) int {
 }
 
 func findNextEmpty(b Board) [2]int {
-	for row := range len(b) {
-		for col := range len(b) {
-			if b[row][col] == 0 {
+	for row := range len(b.Cells) {
+		for col := range len(b.Cells) {
+			if b.Cell(row, col) == 0 {
 				return [2]int{row, col}
 			}
 		}

@@ -1,20 +1,21 @@
 package sudoku
 
-type Board [9][9]int
+type Board struct {
+	Cells      [9][9]int
+	Candidates [9][9]uint16
+}
 
 func New() Board {
 	return Board{}
 }
 
-func Get(board Board, row, col int) int {
-	return board[row][col]
+func (b Board) Cell(row, col int) int {
+	return b.Cells[row][col]
 }
 
-func Set(board Board, row, col, val int) Board {
+func (b *Board) SetCell(row, col, val int) {
 	if val < 0 || val > 9 {
-		return board
+		panic("sudoku: SetCell value must be between 0 and 9")
 	}
-	b := board
-	b[row][col] = val
-	return b
+	b.Cells[row][col] = val
 }
