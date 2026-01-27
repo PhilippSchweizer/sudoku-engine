@@ -4,7 +4,7 @@ func BoardValid(b Board) bool {
 	for row := range 9 {
 		var unit [9]int
 		for i := range 9 {
-			unit[i] = b[row][i]
+			unit[i] = b.Cell(row, i)
 		}
 		if hasDuplicateInUnit(unit) {
 			return false
@@ -14,7 +14,7 @@ func BoardValid(b Board) bool {
 	for column := range 9 {
 		var unit [9]int
 		for i := range 9 {
-			unit[i] = b[i][column]
+			unit[i] = b.Cell(i, column)
 		}
 		if hasDuplicateInUnit(unit) {
 			return false
@@ -26,7 +26,7 @@ func BoardValid(b Board) bool {
 		bc := (box % 3) * 3
 		var unit [9]int
 		for i := range 9 {
-			unit[i] = b[br+i/3][bc+i%3]
+			unit[i] = b.Cell(br+i/3, bc+i%3)
 		}
 		if hasDuplicateInUnit(unit) {
 			return false
@@ -39,7 +39,7 @@ func BoardValid(b Board) bool {
 func BoardSolved(b Board) bool {
 	for r := range 9 {
 		for c := range 9 {
-			if b[r][c] == 0 {
+			if b.Cell(r, c) == 0 {
 				return false
 			}
 		}
