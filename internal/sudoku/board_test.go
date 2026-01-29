@@ -23,6 +23,27 @@ func TestGetSet(t *testing.T) {
 	}
 }
 
+func TestSetCellPanicsOnInvalidValue(t *testing.T) {
+	panicIfNoPanic := func(t *testing.T, val int) {
+		t.Helper()
+		if r := recover(); r == nil {
+			t.Errorf("SetCell(%d) should panic", val)
+		}
+	}
+
+	t.Run("value_too_high", func(t *testing.T) {
+		defer panicIfNoPanic(t, 10)
+		b := New()
+		b.SetCell(0, 0, 10)
+	})
+
+	t.Run("value_negative", func(t *testing.T) {
+		defer panicIfNoPanic(t, -1)
+		b := New()
+		b.SetCell(0, 0, -1)
+	})
+}
+
 func TestAddRemoveCandidate(t *testing.T) {
 	t.Run("add_candidate", func(t *testing.T) {
 		b := New()
@@ -55,6 +76,17 @@ func TestAddRemoveCandidate(t *testing.T) {
 		b.RemoveCandidate(0, 0, 5)
 		if b.HasCandidate(0, 0, 5) {
 			t.Error("Should not have candidate after removal.")
+		}
+	})
+
+	t.Run("get_candidates", func(t *testing.T) {
+		b := New()
+		b.SetCell(8, 8, 1)
+		b.SetCell(6, 6, 6)
+		b.SetCell(8, 4, 4)
+		b.UpdateCandidates()
+		if b.GetCandidates(8, 7) != 0b111010110 {
+			t.Error("Should return only candidates that don't contradict set cells.")
 		}
 	})
 }
