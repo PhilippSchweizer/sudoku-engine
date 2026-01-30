@@ -2,31 +2,31 @@ package sudoku
 
 import "testing"
 
-func TestBoardValid(t *testing.T) {
+func TestIsValid(t *testing.T) {
 	t.Run("empty_board", func(t *testing.T) {
-		if !BoardValid(New()) {
+		if !New().IsValid() {
 			t.Error("empty board should be valid")
 		}
 	})
 	t.Run("duplicate_in_row", func(t *testing.T) {
 		b := New()
-		r := 0
-		b.SetCell(r, 0, 1)
-		b.SetCell(r, 3, 1)
+		row := 0
+		b.SetCell(row, 0, 1)
+		b.SetCell(row, 3, 1)
 
-		if BoardValid(b) != false {
-			t.Errorf("Duplicate in row %d not detected", (r + 1))
+		if b.IsValid() != false {
+			t.Errorf("Duplicate in row %d not detected", row)
 		}
 	})
 
 	t.Run("duplicate_in_column", func(t *testing.T) {
 		b := New()
-		c := 8
-		b.SetCell(3, c, 5)
-		b.SetCell(5, c, 5)
+		col := 8
+		b.SetCell(3, col, 5)
+		b.SetCell(5, col, 5)
 
-		if BoardValid(b) != false {
-			t.Errorf("Duplicate in column %d not detected", (c + 1))
+		if b.IsValid() != false {
+			t.Errorf("Duplicate in column %d not detected", col)
 		}
 	})
 
@@ -35,13 +35,13 @@ func TestBoardValid(t *testing.T) {
 		b.SetCell(0, 0, 1)
 		b.SetCell(2, 2, 1)
 
-		if BoardValid(b) != false {
+		if b.IsValid() != false {
 			t.Error("Duplicate in box not detected")
 		}
 	})
 }
 
-func TestBoardSolved(t *testing.T) {
+func TestIsSolved(t *testing.T) {
 	t.Run("solved_board", func(t *testing.T) {
 		b := Board{
 			Cells: [9][9]int{
@@ -56,7 +56,7 @@ func TestBoardSolved(t *testing.T) {
 				{3, 4, 5, 2, 8, 6, 1, 7, 9},
 			},
 		}
-		if !BoardSolved(b) {
+		if !b.IsSolved() {
 			t.Error("Valid full board should be evaluated as solved.")
 		}
 	})
@@ -75,7 +75,7 @@ func TestBoardSolved(t *testing.T) {
 				{3, 4, 5, 2, 8, 6, 1, 7, 0},
 			},
 		}
-		if BoardSolved(b) {
+		if b.IsSolved() {
 			t.Error("Board with empty cell should not be evaluated as solved.")
 		}
 	})
@@ -94,13 +94,13 @@ func TestBoardSolved(t *testing.T) {
 				{3, 4, 5, 2, 8, 6, 1, 7, 9},
 			},
 		}
-		if BoardSolved(b) {
+		if b.IsSolved() {
 			t.Error("Full board with duplicate in row should not be evaluated as solved.")
 		}
 	})
 
 	t.Run("empty_board", func(t *testing.T) {
-		if BoardSolved(New()) {
+		if New().IsSolved() {
 			t.Error("Empty board should not be evaluated as solved.")
 		}
 	})
