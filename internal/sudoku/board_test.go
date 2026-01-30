@@ -6,10 +6,10 @@ import (
 
 func TestNew(t *testing.T) {
 	b := New()
-	for row := range 9 {
-		for col := range 9 {
-			if b.Cell(row, col) != 0 {
-				t.Errorf("Cell (%d.%d) should be 0. Got %d", row, col, b.Cell(row, col))
+	for r := range 9 {
+		for c := range 9 {
+			if b.Cell(r, c) != 0 {
+				t.Errorf("Cell (%d.%d) should be 0. Got %d", r, c, b.Cell(r, c))
 			}
 		}
 	}
@@ -137,9 +137,9 @@ func TestUpdateCandidates(t *testing.T) {
 	})
 }
 
-func TestSetCellWithCandidateUpdate(t *testing.T) {
+func TestSetCellAndUpdateCandidates(t *testing.T) {
 	b := New()
-	b.SetCellWithCandidateUpdate(4, 4, 4)
+	b.SetCellAndUpdateCandidates(4, 4, 4)
 	if b.HasCandidate(3, 4, 4) || b.HasCandidate(4, 5, 4) || b.HasCandidate(3, 3, 4) {
 		t.Error("Cell candidates in same row, column and box should have been updated.")
 	}

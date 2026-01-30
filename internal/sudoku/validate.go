@@ -1,26 +1,29 @@
 package sudoku
 
-func BoardValid(b Board) bool {
-	for row := range 9 {
+func (b Board) IsValid() bool {
+	// loop through rows
+	for r := range 9 {
 		var unit [9]int
 		for i := range 9 {
-			unit[i] = b.Cell(row, i)
+			unit[i] = b.Cell(r, i)
 		}
 		if hasDuplicateInUnit(unit) {
 			return false
 		}
 	}
 
-	for column := range 9 {
+	// loop through columns
+	for c := range 9 {
 		var unit [9]int
 		for i := range 9 {
-			unit[i] = b.Cell(i, column)
+			unit[i] = b.Cell(i, c)
 		}
 		if hasDuplicateInUnit(unit) {
 			return false
 		}
 	}
 
+	// loop through boxes
 	for box := range 9 {
 		br := (box / 3) * 3
 		bc := (box % 3) * 3
@@ -36,7 +39,7 @@ func BoardValid(b Board) bool {
 	return true
 }
 
-func BoardSolved(b Board) bool {
+func (b Board) IsSolved() bool {
 	for r := range 9 {
 		for c := range 9 {
 			if b.Cell(r, c) == 0 {
@@ -44,7 +47,7 @@ func BoardSolved(b Board) bool {
 			}
 		}
 	}
-	return BoardValid(b)
+	return b.IsValid()
 }
 
 func hasDuplicateInUnit(unit [9]int) bool {
@@ -53,7 +56,7 @@ func hasDuplicateInUnit(unit [9]int) bool {
 		if v == 0 {
 			continue
 		}
-		if seen[v-1] == true {
+		if seen[v-1] {
 			return true
 		} else {
 			seen[v-1] = true

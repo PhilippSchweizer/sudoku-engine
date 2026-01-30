@@ -24,7 +24,7 @@ func (b *Board) SetCell(row, col, val int) {
 	b.Cells[row][col] = val
 }
 
-func (b *Board) SetCellWithCandidateUpdate(row, col, val int) {
+func (b *Board) SetCellAndUpdateCandidates(row, col, val int) {
 	b.SetCell(row, col, val)
 	b.updateCandidatesForPlacement(row, col, val)
 }
@@ -46,23 +46,23 @@ func (b *Board) RemoveCandidate(row, col, val int) {
 }
 
 func (b *Board) UpdateCandidates() {
-	for row := range 9 {
-		for col := range 9 {
-			if b.Cell(row, col) != 0 {
-				b.Candidates[row][col] = 0
+	for r := range 9 {
+		for c := range 9 {
+			if b.Cell(r, c) != 0 {
+				b.Candidates[r][c] = 0
 				continue
 			}
 			const allDigitsMask uint16 = (1 << 9) - 1
 			usedMask := uint16(0)
 
-			br := (row / 3) * 3
-			bc := (col / 3) * 3
+			br := (r / 3) * 3
+			bc := (c / 3) * 3
 			for i := range 9 {
-				if v := b.Cell(row, i); v != 0 {
+				if v := b.Cell(r, i); v != 0 {
 					usedMask |= bitFor(v)
 
 				}
-				if v := b.Cell(i, col); v != 0 {
+				if v := b.Cell(i, c); v != 0 {
 					usedMask |= bitFor(v)
 				}
 				if v := b.Cell(br+i/3, bc+i%3); v != 0 {
@@ -70,7 +70,7 @@ func (b *Board) UpdateCandidates() {
 				}
 			}
 			candidates := allDigitsMask &^ usedMask
-			b.Candidates[row][col] = candidates
+			b.Candidates[r][c] = candidates
 		}
 
 	}
