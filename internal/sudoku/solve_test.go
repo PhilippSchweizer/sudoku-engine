@@ -122,61 +122,99 @@ func TestCountSolutions(t *testing.T) {
 }
 
 func TestApplyNakedPair(t *testing.T) {
-	// Set up a board with a naked pair in row 0: cells (0,1) and (0,5) only have candidates {3, 7}.
-	// Fill rest of row 0 so the row is valid; leave (0,1) and (0,5) empty with only {3,7}.
-	b := New()
-	b.SetCell(0, 0, 1)
-	b.SetCell(0, 2, 6)
-	b.SetCell(0, 3, 2)
-	b.SetCell(0, 4, 8)
-	b.SetCell(0, 5, 0) // empty, will set candidates below
-	b.SetCell(0, 6, 5)
-	b.SetCell(0, 7, 3)
-	b.SetCell(0, 8, 9)
-	// Row 0: [1, 0, 6, 2, 8, 0, 5, 3, 9] -> only (0,1) and (0,5) empty
-	// Set (0,1) and (0,5) to only candidates {3, 7} (no UpdateCandidates so no other pair)
-	b.AddCandidate(0, 1, 3)
-	b.AddCandidate(0, 1, 7)
-	b.AddCandidate(0, 5, 3)
-	b.AddCandidate(0, 5, 7)
-	// Apply naked pair: should remove 3 and 7 from other cells in row 0 (none empty except pair)
-	applied := b.ApplyNakedPair()
-	if !applied {
-		t.Fatal("ApplyNakedPair should find and apply the pair")
-	}
-	// Pair cells still have 3 and 7
-	if !b.HasCandidate(0, 1, 3) || !b.HasCandidate(0, 1, 7) {
-		t.Error("pair cell (0,1) should still have candidates 3 and 7")
-	}
-	if !b.HasCandidate(0, 5, 3) || !b.HasCandidate(0, 5, 7) {
-		t.Error("pair cell (0,5) should still have candidates 3 and 7")
-	}
+	t.Run("naked_pair_two_empty_cells", func(t *testing.T) {
+		// Row 0: [1, 0, 6, 2, 8, 0, 5, 3, 9] -> 3 & 7 in 0,1 and 0,5
+		b := New()
+		b.SetCell(0, 0, 1)
+		b.SetCell(0, 2, 6)
+		b.SetCell(0, 3, 2)
+		b.SetCell(0, 4, 8)
+		b.SetCell(0, 6, 5)
+		b.SetCell(0, 7, 3)
+		b.SetCell(0, 8, 9)
 
-	// Case 2: row with one more empty cell that has 3,7 — should lose 3,7 after elimination
-	b2 := New()
-	b2.SetCell(0, 0, 1)
-	b2.SetCell(0, 2, 6)
-	b2.SetCell(0, 3, 2)
-	b2.SetCell(0, 4, 8)
-	b2.SetCell(0, 6, 5)
-	b2.SetCell(0, 7, 3)
-	b2.SetCell(0, 8, 9)
-	// (0,1), (0,5) = pair with {3,7}; (0,0) empty with 3,7 so we can give it 3,7 and expect removal
-	b2.AddCandidate(0, 1, 3)
-	b2.AddCandidate(0, 1, 7)
-	b2.AddCandidate(0, 5, 3)
-	b2.AddCandidate(0, 5, 7)
-	b2.AddCandidate(0, 0, 3)
-	b2.AddCandidate(0, 0, 7)
-	b2.AddCandidate(0, 0, 4)
-	applied2 := b2.ApplyNakedPair()
-	if !applied2 {
-		t.Fatal("ApplyNakedPair should find and apply the pair (case 2)")
+		b.AddCandidate(0, 1, 3)
+		b.AddCandidate(0, 1, 7)
+		b.AddCandidate(0, 5, 3)
+		b.AddCandidate(0, 5, 7)
+		// b.UpdateCandidates()
+
+		// Apply naked pair: should remove 3 and 7 from other cells in row 0
+		applied := b.ApplyNakedPair()
+		if !applied {
+			t.Fatal("ApplyNakedPair should find and apply the pair")
+		}
+
+		if !b.HasCandidate(0, 1, 3) || !b.HasCandidate(0, 1, 7) {
+			t.Error("pair cell (0,1) should still have candidates 3 and 7")
+		}
+
+		if !b.HasCandidate(0, 5, 3) || !b.HasCandidate(0, 5, 7) {
+			t.Error("pair cell (0,5) should still have candidates 3 and 7")
+		}
+	})
+
+	t.Run("naked_pair_three_empty_cells", func(t *testing.T) {
+		b := New()
+		b.SetCell(0, 0, 1)
+		b.SetCell(0, 2, 6)
+		b.SetCell(0, 3, 2)
+		b.SetCell(0, 4, 8)
+		b.SetCell(0, 6, 5)
+		b.SetCell(0, 7, 3)
+		b.SetCell(0, 8, 9)
+
+		b.AddCandidate(0, 1, 3)
+		b.AddCandidate(0, 1, 7)
+		b.AddCandidate(0, 5, 3)
+		b.AddCandidate(0, 5, 7)
+		b.AddCandidate(0, 0, 3)
+		b.AddCandidate(0, 0, 7)
+		b.AddCandidate(0, 0, 4)
+
+		applied := b.ApplyNakedPair()
+
+		if !applied {
+			t.Fatal("ApplyNakedPair should find and apply the pair.")
+		}
+
+		if b.HasCandidate(0, 0, 3) || b.HasCandidate(0, 0, 7) {
+			t.Error("cell (0,0) should lose candidates 3 and 7 after naked pair elimination")
+		}
+		if !b.HasCandidate(0, 0, 4) {
+			t.Error("cell (0,0) should still have candidate 4")
+		}
+	})
+}
+
+func TestApplyHiddenPair(t *testing.T) {
+	// Hidden pair in row 0: digits 1 and 2 appear only in (0,1) and (0,5),
+	// and those cells have an extra candidate 3 that should be removed.
+	b := New()
+	b.AddCandidate(0, 1, 1)
+	b.AddCandidate(0, 1, 2)
+	b.AddCandidate(0, 1, 3)
+	b.AddCandidate(0, 5, 1)
+	b.AddCandidate(0, 5, 2)
+	b.AddCandidate(0, 5, 3)
+	// Make digit 3 appear elsewhere in the row so it's not part of the hidden pair.
+	b.AddCandidate(0, 0, 3)
+	b.AddCandidate(0, 0, 4)
+
+	applied := b.ApplyHiddenPair()
+	if !applied {
+		t.Fatal("ApplyHiddenPair should find and apply the hidden pair")
 	}
-	if b2.HasCandidate(0, 0, 3) || b2.HasCandidate(0, 0, 7) {
-		t.Error("cell (0,0) should lose candidates 3 and 7 after naked pair elimination")
+	if b.HasCandidate(0, 1, 3) || b.HasCandidate(0, 5, 3) {
+		t.Error("hidden pair should remove candidate 3 from the pair cells")
 	}
-	if !b2.HasCandidate(0, 0, 4) {
-		t.Error("cell (0,0) should still have candidate 4")
+	if !b.HasCandidate(0, 1, 1) || !b.HasCandidate(0, 1, 2) {
+		t.Error("pair cell (0,1) should keep candidates 1 and 2")
+	}
+	if !b.HasCandidate(0, 5, 1) || !b.HasCandidate(0, 5, 2) {
+		t.Error("pair cell (0,5) should keep candidates 1 and 2")
+	}
+	if !b.HasCandidate(0, 0, 3) || !b.HasCandidate(0, 0, 4) {
+		t.Error("other cells in row should keep their candidates")
 	}
 }
