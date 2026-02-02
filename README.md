@@ -1,11 +1,11 @@
 # Golang Sudoku Engine (WIP)
 
-> A Go-based Sudoku backend focused on learning, clarity, and solver logic. This is a work in progress.
+> A Go-based Sudoku backend focused on learning. This is a work in progress.
 
 ## Why This Exists
 - Learning Go, algorithms, and efficiency tradeoffs
-- Building a portfolio piece that showcases problem-solving
-- Having fun while exploring Sudoku solving techniques
+- Building a portfolio piece (I coded it myself, i swear)
+- Having fun
 
 ## Status
 - **Current:** Backtracking solver, validation, and candidate tracking
