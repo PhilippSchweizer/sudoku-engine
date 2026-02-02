@@ -1,40 +1,22 @@
 package sudoku
 
 func (b Board) IsValid() bool {
-	// loop through rows
 	for r := range 9 {
-		var unit [9]int
-		for i := range 9 {
-			unit[i] = b.Cell(r, i)
-		}
-		if hasDuplicateInUnit(unit) {
+		if hasDuplicateInUnit(b.RowAsUnit(r)) {
 			return false
 		}
 	}
-
-	// loop through columns
 	for c := range 9 {
-		var unit [9]int
-		for i := range 9 {
-			unit[i] = b.Cell(i, c)
-		}
-		if hasDuplicateInUnit(unit) {
+		if hasDuplicateInUnit(b.ColAsUnit(c)) {
 			return false
 		}
 	}
-
-	// loop through boxes
 	for box := range 9 {
 		br := (box / 3) * 3
 		bc := (box % 3) * 3
-		var unit [9]int
-		for i := range 9 {
-			unit[i] = b.Cell(br+i/3, bc+i%3)
-		}
-		if hasDuplicateInUnit(unit) {
+		if hasDuplicateInUnit(b.BoxAsUnit(br, bc)) {
 			return false
 		}
-
 	}
 	return true
 }
@@ -48,6 +30,38 @@ func (b Board) IsSolved() bool {
 		}
 	}
 	return b.IsValid()
+}
+
+func (b Board) UnitsValidAt(row, col int) bool {
+	return !hasDuplicateInUnit(b.RowAsUnit(row)) &&
+		!hasDuplicateInUnit(b.ColAsUnit(col)) &&
+		!hasDuplicateInUnit(b.BoxAsUnit(row, col))
+}
+
+func (b Board) RowAsUnit(row int) [9]int {
+	unit := [9]int{}
+	for i := range 9 {
+		unit[i] = b.Cell(row, i)
+	}
+	return unit
+}
+
+func (b Board) ColAsUnit(col int) [9]int {
+	unit := [9]int{}
+	for i := range 9 {
+		unit[i] = b.Cell(i, col)
+	}
+	return unit
+}
+
+func (b Board) BoxAsUnit(row, col int) [9]int {
+	unit := [9]int{}
+	br := (row / 3) * 3
+	bc := (col / 3) * 3
+	for i := range 9 {
+		unit[i] = b.Cell(br+i/3, bc+i%3)
+	}
+	return unit
 }
 
 func hasDuplicateInUnit(unit [9]int) bool {
