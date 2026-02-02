@@ -5,12 +5,15 @@ import (
 )
 
 func Solve(b Board) (Board, bool) {
-	if b.IsSolved() {
-		return b, true
-	}
-
 	if !b.IsValid() {
 		return b, false
+	}
+	return solve(b)
+}
+
+func solve(b Board) (Board, bool) {
+	if b.IsSolved() {
+		return b, true
 	}
 
 	row, col := b.nextEmpty()
@@ -18,7 +21,10 @@ func Solve(b Board) (Board, bool) {
 	for v := 1; v <= 9; v++ {
 		newBoard := b
 		newBoard.SetCell(row, col, v)
-		solvedBoard, solved := Solve(newBoard)
+		if !newBoard.UnitsValidAt(row, col) {
+			continue
+		}
+		solvedBoard, solved := solve(newBoard)
 		if solved {
 			return solvedBoard, true
 		}
@@ -28,24 +34,27 @@ func Solve(b Board) (Board, bool) {
 }
 
 func CountSolutions(b Board) int {
+	if !b.IsValid() {
+		return 0
+	}
+	return countSolutions(b)
+}
+
+func countSolutions(b Board) int {
 	if b.IsSolved() {
 		return 1
 	}
 
-	if !b.IsValid() {
-		return 0
-	}
-
 	row, col := b.nextEmpty()
-	if row == -1 {
-		return 1
-	}
 	count := 0
 
 	for v := 1; v <= 9; v++ {
 		newBoard := b
 		newBoard.SetCell(row, col, v)
-		subCount := CountSolutions(newBoard)
+		if !newBoard.UnitsValidAt(row, col) {
+			continue
+		}
+		subCount := countSolutions(newBoard)
 		count += subCount
 		if count >= 2 {
 			return count
