@@ -1,5 +1,7 @@
 package sudoku
 
+import "strings"
+
 type Board struct {
 	Cells      [9][9]int
 	Candidates [9][9]uint16
@@ -86,4 +88,31 @@ func (b *Board) updateCandidatesForPlacement(row, col, val int) {
 		b.RemoveCandidate(i, col, val)
 		b.RemoveCandidate(br+i/3, bc+i%3, val)
 	}
+}
+
+func (b Board) String() string {
+	var sb strings.Builder
+	line := "+-------+-------+-------+\n"
+	sb.WriteString(line)
+	for r := range 9 {
+		sb.WriteString("| ")
+		for c := range 9 {
+			v := b.Cell(r, c)
+			if v == 0 {
+				sb.WriteString(". ")
+			} else {
+				sb.WriteByte(byte('0' + v))
+				sb.WriteString(" ")
+			}
+			if c == 2 || c == 5 {
+				sb.WriteString("| ")
+			}
+		}
+		sb.WriteString("|\n")
+		if r == 2 || r == 5 {
+			sb.WriteString(line)
+		}
+	}
+	sb.WriteString(line)
+	return sb.String()
 }
