@@ -13,7 +13,6 @@ func generate(b Board) (Board, bool) {
 		return b, true
 	}
 
-	// Fixed cell order (first empty) so backtracking stays small; only values are random.
 	row, col := b.nextEmpty()
 	if row < 0 {
 		return b, true
@@ -39,20 +38,6 @@ func generate(b Board) (Board, bool) {
 	return b, false
 
 }
-
-/* func (b Board) EmptyCells() [][2]int {
-	// type coord struct{ r, c int }
-	emptyCells := [][2]int{}
-	for r := range 9 {
-		for c := range 9 {
-			if b.Cell(r, c) == 0 {
-				emptyCells = append(emptyCells, [2]int{r, c})
-			}
-		}
-	}
-	return emptyCells
-}
-*/
 
 func (b Board) AllCellPositions() [][2]int {
 	allCells := [][2]int{}
