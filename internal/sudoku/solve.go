@@ -1,5 +1,7 @@
 package sudoku
 
+import "math/bits"
+
 func Solve(b Board) (Board, bool) {
 	if !b.IsValid() {
 		return b, false
