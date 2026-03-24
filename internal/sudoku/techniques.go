@@ -189,6 +189,19 @@ func (b *Board) ApplyHiddenSingle() (applied bool) {
 	return true
 }
 
+// removeCandidateIfPresent removes val from (row,col) if the cell is empty and has that candidate.
+// Reports whether the candidate set changed.
+func (b *Board) removeCandidateIfPresent(row, col, val int) bool {
+	if b.Cell(row, col) != 0 {
+		return false
+	}
+	if !b.HasCandidate(row, col, val) {
+		return false
+	}
+	b.RemoveCandidate(row, col, val)
+	return true
+}
+
 func (b *Board) ApplyNakedPair() (applied bool) {
 	found, row1, col1, row2, col2, val1, val2 := b.nakedPair()
 
@@ -208,13 +221,18 @@ func (b *Board) ApplyNakedPair() (applied bool) {
 		sameBox = true
 	}
 
+	changed := false
 	if sameRow {
 		for c := range 9 {
 			if c == col1 || c == col2 {
 				continue
 			}
-			b.RemoveCandidate(row1, c, val1)
-			b.RemoveCandidate(row1, c, val2)
+			if b.removeCandidateIfPresent(row1, c, val1) {
+				changed = true
+			}
+			if b.removeCandidateIfPresent(row1, c, val2) {
+				changed = true
+			}
 		}
 	}
 	if sameCol {
@@ -222,8 +240,12 @@ func (b *Board) ApplyNakedPair() (applied bool) {
 			if r == row1 || r == row2 {
 				continue
 			}
-			b.RemoveCandidate(r, col1, val1)
-			b.RemoveCandidate(r, col1, val2)
+			if b.removeCandidateIfPresent(r, col1, val1) {
+				changed = true
+			}
+			if b.removeCandidateIfPresent(r, col1, val2) {
+				changed = true
+			}
 		}
 	}
 	if sameBox {
@@ -233,11 +255,15 @@ func (b *Board) ApplyNakedPair() (applied bool) {
 			if ((br+i/3) == row1 && (bc+i%3) == col1) || ((br+i/3) == row2 && (bc+i%3) == col2) {
 				continue
 			}
-			b.RemoveCandidate(br+i/3, bc+i%3, val1)
-			b.RemoveCandidate(br+i/3, bc+i%3, val2)
+			if b.removeCandidateIfPresent(br+i/3, bc+i%3, val1) {
+				changed = true
+			}
+			if b.removeCandidateIfPresent(br+i/3, bc+i%3, val2) {
+				changed = true
+			}
 		}
 	}
-	return true
+	return changed
 }
 
 func (b *Board) ApplyHiddenPair() (applied bool) {
@@ -245,13 +271,18 @@ func (b *Board) ApplyHiddenPair() (applied bool) {
 	if !found {
 		return false
 	}
+	changed := false
 	for v := 1; v <= 9; v++ {
 		if v == val1 || v == val2 {
 			continue
 		}
-		b.RemoveCandidate(row1, col1, v)
-		b.RemoveCandidate(row2, col2, v)
+		if b.removeCandidateIfPresent(row1, col1, v) {
+			changed = true
+		}
+		if b.removeCandidateIfPresent(row2, col2, v) {
+			changed = true
+		}
 
 	}
-	return true
+	return changed
 }
