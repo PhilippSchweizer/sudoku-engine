@@ -46,31 +46,38 @@ func SolveByLogic(b Board) LogicSolveResult {
 	for !puzzle.IsSolved() {
 		progress := false
 
-		for puzzle.ApplyNakedSingle() {
+		for puzzle.ApplyNakedSingles() {
 			progress = true
 			result.nakedSingleCount++
 		}
 
-		for puzzle.ApplyHiddenSingle() {
+		for puzzle.ApplyHiddenSingles() {
 			progress = true
 			result.hiddenSingleCount++
-			// can it be avoided to run this on every iteration of the loop?
 			if TechniqueHiddenSingle > result.MaxTechnique {
 				result.MaxTechnique = TechniqueHiddenSingle
 			}
 		}
 
-		for puzzle.ApplyNakedPair() {
+		for {
+			applied, n := puzzle.ApplyNakedPairs()
+			if !applied {
+				break
+			}
 			progress = true
-			result.nakedPairCount++
+			result.nakedPairCount += n
 			if TechniqueNakedPair > result.MaxTechnique {
 				result.MaxTechnique = TechniqueNakedPair
 			}
 		}
 
-		for puzzle.ApplyHiddenPair() {
+		for {
+			applied, n := puzzle.ApplyHiddenPairs()
+			if !applied {
+				break
+			}
 			progress = true
-			result.hiddenPairCount++
+			result.hiddenPairCount += n
 			if TechniqueHiddenPair > result.MaxTechnique {
 				result.MaxTechnique = TechniqueHiddenPair
 			}
