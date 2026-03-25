@@ -168,6 +168,19 @@ func (b Board) hiddenPairInUnit(getCell func(i int) (row, col int)) (found bool,
 	return false, -1, -1, -1, -1, 0, 0
 }
 
+// removeCandidateIfPresent removes val from (row,col) if the cell is empty and has that candidate.
+// Reports whether the candidate set changed.
+func (b *Board) removeCandidateIfPresent(row, col, val int) bool {
+	if b.Cell(row, col) != 0 {
+		return false
+	}
+	if !b.HasCandidate(row, col, val) {
+		return false
+	}
+	b.RemoveCandidate(row, col, val)
+	return true
+}
+
 func (b *Board) ApplyNakedSingle() (applied bool) {
 	found, row, col, val := b.nakedSingle()
 	if !found {
@@ -186,19 +199,6 @@ func (b *Board) ApplyHiddenSingle() (applied bool) {
 		return false
 	}
 	b.SetCellAndUpdateCandidates(row, col, val)
-	return true
-}
-
-// removeCandidateIfPresent removes val from (row,col) if the cell is empty and has that candidate.
-// Reports whether the candidate set changed.
-func (b *Board) removeCandidateIfPresent(row, col, val int) bool {
-	if b.Cell(row, col) != 0 {
-		return false
-	}
-	if !b.HasCandidate(row, col, val) {
-		return false
-	}
-	b.RemoveCandidate(row, col, val)
 	return true
 }
 
@@ -222,6 +222,7 @@ func (b *Board) ApplyNakedPair() (applied bool) {
 	}
 
 	changed := false
+
 	if sameRow {
 		for c := range 9 {
 			if c == col1 || c == col2 {
@@ -263,15 +264,19 @@ func (b *Board) ApplyNakedPair() (applied bool) {
 			}
 		}
 	}
+
 	return changed
 }
 
 func (b *Board) ApplyHiddenPair() (applied bool) {
 	found, row1, col1, row2, col2, val1, val2 := b.hiddenPair()
+
 	if !found {
 		return false
 	}
+
 	changed := false
+
 	for v := 1; v <= 9; v++ {
 		if v == val1 || v == val2 {
 			continue
@@ -282,7 +287,6 @@ func (b *Board) ApplyHiddenPair() (applied bool) {
 		if b.removeCandidateIfPresent(row2, col2, v) {
 			changed = true
 		}
-
 	}
 	return changed
 }
