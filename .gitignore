@@ -1,1 +1,4 @@
 .cursor/
+
+# Overwritten by TestSolveByLogic_generatedPuzzle for local inspection
+internal/sudoku/testdata/logic_solve_boards.txt
