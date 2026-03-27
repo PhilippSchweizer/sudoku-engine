@@ -44,7 +44,7 @@ func (b Board) pointingInBox(box, digit int) (found, alongRow bool, line int) {
 }
 
 // pointing finds the first box where digit is locked to one row or column within the box.
-func (b Board) pointing() (found, alongRow bool, box, line, val int) {
+/* func (b Board) pointing() (found, alongRow bool, box, line, val int) {
 	for boxIdx := range 9 {
 		for v := 1; v <= 9; v++ {
 			if ok, ar, ln := b.pointingInBox(boxIdx, v); ok {
@@ -54,4 +54,60 @@ func (b Board) pointing() (found, alongRow bool, box, line, val int) {
 	}
 
 	return false, false, -1, -1, 0
+} */
+
+// ApplyPointings performs pointing eliminations: when every candidate for a digit in a box lies on
+// one row or column inside that box, that digit is removed from the rest of that line outside the box.
+// Repeats until a full pass over all boxes and digits makes no change.
+func (b *Board) ApplyPointings() (applied bool, applications int) {
+	overall := false
+	for {
+		changed := false
+		passApps := 0
+
+		for box := range 9 {
+			br := (box / 3) * 3
+			bc := (box % 3) * 3
+			for v := 1; v <= 9; v++ {
+				ok, alongRow, line := b.pointingInBox(box, v)
+				if !ok {
+					continue
+				}
+				boxDigitChanged := false
+				if alongRow {
+					r := line
+					for c := range 9 {
+						if c >= bc && c < bc+3 {
+							continue
+						}
+						if b.removeCandidateIfPresent(r, c, v) {
+							boxDigitChanged = true
+							changed = true
+						}
+					}
+				} else {
+					c := line
+					for r := range 9 {
+						if r >= br && r < br+3 {
+							continue
+						}
+						if b.removeCandidateIfPresent(r, c, v) {
+							boxDigitChanged = true
+							changed = true
+						}
+					}
+				}
+				if boxDigitChanged {
+					passApps++
+				}
+			}
+		}
+
+		applications += passApps
+		if !changed {
+			break
+		}
+		overall = true
+	}
+	return overall, applications
 }

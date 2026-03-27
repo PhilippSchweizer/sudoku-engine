@@ -1,6 +1,12 @@
 package sudoku
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+)
 
 func cellsEqual(a, b Board) bool {
 	for r := range 9 {
@@ -11,6 +17,53 @@ func cellsEqual(a, b Board) bool {
 		}
 	}
 	return true
+}
+
+// writeLogicSolveBoardDump writes stats plus Start and Progress as ASCII grids with pencil marks.
+// Start is shown with candidates recomputed from givens (Start may not store pencil marks before solving).
+func writeLogicSolveBoardDump(path string, got LogicSolveResult) error {
+	var b strings.Builder
+	b.WriteString("LogicSolveResult\n")
+	b.WriteString(strings.Repeat("=", 48))
+	b.WriteByte('\n')
+	b.WriteString("valid: ")
+	b.WriteString(strconv.FormatBool(got.valid))
+	b.WriteString(", solvedByLogic: ")
+	b.WriteString(strconv.FormatBool(got.solvedByLogic))
+	b.WriteString(", rounds: ")
+	b.WriteString(strconv.Itoa(got.rounds))
+	b.WriteString(", maxTechnique: ")
+	b.WriteString(strconv.Itoa(int(got.MaxTechnique)))
+	b.WriteString("\n")
+	b.WriteString("nakedSingle=")
+	b.WriteString(strconv.Itoa(got.nakedSingleCount))
+	b.WriteString(" hiddenSingle=")
+	b.WriteString(strconv.Itoa(got.hiddenSingleCount))
+	b.WriteString(" nakedPair=")
+	b.WriteString(strconv.Itoa(got.nakedPairCount))
+	b.WriteString(" hiddenPair=")
+	b.WriteString(strconv.Itoa(got.hiddenPairCount))
+	b.WriteString(" pointing=")
+	b.WriteString(strconv.Itoa(got.pointingCount))
+	b.WriteString(" nakedTriple=")
+	b.WriteString(strconv.Itoa(got.nakedTripleCount))
+	b.WriteString("\n\n")
+
+	start := got.Start
+	start.UpdateCandidates()
+	b.WriteString("Start (givens + pencil marks)\n")
+	b.WriteString(strings.Repeat("-", 48))
+	b.WriteByte('\n')
+	b.WriteString(start.FormatWithPencilMarks())
+	b.WriteByte('\n')
+
+	b.WriteString("Progress (after SolveByLogic)\n")
+	b.WriteString(strings.Repeat("-", 48))
+	b.WriteByte('\n')
+	b.WriteString(got.Progress.FormatWithPencilMarks())
+	b.WriteByte('\n')
+
+	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
 
 // solvedTestGrid is a complete valid Sudoku (same as in solve_test.go).
@@ -69,7 +122,7 @@ func TestSolveByLogic_alreadySolved(t *testing.T) {
 	if got.rounds != 0 {
 		t.Errorf("rounds: want 0, got %d", got.rounds)
 	}
-	if got.nakedSingleCount != 0 || got.hiddenSingleCount != 0 || got.nakedPairCount != 0 || got.hiddenPairCount != 0 {
+	if got.nakedSingleCount != 0 || got.hiddenSingleCount != 0 || got.nakedPairCount != 0 || got.hiddenPairCount != 0 || got.pointingCount != 0 || got.nakedTripleCount != 0 {
 		t.Error("no techniques should run on already-solved board")
 	}
 	if got.MaxTechnique != TechniqueNakedSingle {
@@ -121,7 +174,49 @@ func TestSolveByLogic_stuckEmptyBoard(t *testing.T) {
 	if got.rounds != 0 {
 		t.Errorf("rounds: want 0, got %d", got.rounds)
 	}
-	if got.nakedSingleCount != 0 || got.hiddenSingleCount != 0 || got.nakedPairCount != 0 || got.hiddenPairCount != 0 {
+	if got.nakedSingleCount != 0 || got.hiddenSingleCount != 0 || got.nakedPairCount != 0 || got.hiddenPairCount != 0 || got.pointingCount != 0 || got.nakedTripleCount != 0 {
 		t.Error("no technique should apply on empty board")
+	}
+}
+
+// TestSolveByLogic_generatedPuzzle exercises the logic solver on a randomly generated puzzle.
+// Run with -v to see LogicSolveResult fields in the test log.
+//
+// If the logged numbers never change between invocations, you are usually seeing cached output:
+// Go re-runs passing tests only when inputs change; otherwise it replays the prior log. Use
+//   go test ./internal/sudoku/... -run TestSolveByLogic_generatedPuzzle -v -count=1
+// to disable caching and generate a fresh puzzle each time.
+func TestSolveByLogic_generatedPuzzle(t *testing.T) {
+	t.Parallel()
+	puzzle, solution := GeneratePuzzle()
+	got := SolveByLogic(puzzle)
+
+	t.Logf("LogicSolveResult: valid=%v solvedByLogic=%v rounds=%d maxTechnique=%v\n"+
+		"  counts: nakedSingle=%d hiddenSingle=%d nakedPair=%d hiddenPair=%d pointing=%d nakedTriple=%d\n"+
+		"  progress matches generator solution: %v",
+		got.valid, got.solvedByLogic, got.rounds, got.MaxTechnique,
+		got.nakedSingleCount, got.hiddenSingleCount, got.nakedPairCount, got.hiddenPairCount, got.pointingCount, got.nakedTripleCount,
+		got.solvedByLogic && cellsEqual(got.Progress, solution),
+	)
+
+	// Written under package testdata/ (cwd is this package when `go test` runs) so you can open it after the test.
+	dumpPath := filepath.Join("testdata", "logic_solve_boards.txt")
+	if err := os.MkdirAll(filepath.Dir(dumpPath), 0o755); err != nil {
+		t.Fatalf("mkdir testdata: %v", err)
+	}
+	if err := writeLogicSolveBoardDump(dumpPath, got); err != nil {
+		t.Fatalf("write board dump: %v", err)
+	}
+	abs, _ := filepath.Abs(dumpPath)
+	if abs != "" {
+		dumpPath = abs
+	}
+	t.Logf("board dump (Start + Progress with pencil marks): %s", dumpPath)
+
+	if !got.valid {
+		t.Fatal("generated puzzle should be valid")
+	}
+	if !cellsEqual(got.Start, puzzle) {
+		t.Error("Start should preserve input puzzle")
 	}
 }

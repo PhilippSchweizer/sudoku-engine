@@ -72,12 +72,12 @@ func (b *Board) ApplyNakedPairs() (applied bool, applications int) {
 				func(i int) (int, int) { return i, c },
 				func(b *Board, r1, c1, r2, c2, v1, v2 int) bool {
 					pairChanged := false
-					for rr := range 9 {
-						if rr == r1 || rr == r2 {
+					for r := range 9 {
+						if r == r1 || r == r2 {
 							continue
 						}
-						rm1 := b.removeCandidateIfPresent(rr, c1, v1)
-						rm2 := b.removeCandidateIfPresent(rr, c1, v2)
+						rm1 := b.removeCandidateIfPresent(r, c1, v1)
+						rm2 := b.removeCandidateIfPresent(r, c1, v2)
 						if rm1 || rm2 {
 							pairChanged = true
 						}

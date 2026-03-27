@@ -116,3 +116,62 @@ func (b Board) String() string {
 	sb.WriteString(line)
 	return sb.String()
 }
+
+// pencilMarkLine returns one of three 3-character lines for the miniature 1–9 grid
+// in an empty cell (subrow 0 → digits 1–3, 1 → 4–6, 2 → 7–9). Filled cells show the digit on the middle line only.
+func (b Board) pencilMarkLine(row, col, subrow int) string {
+	v := b.Cell(row, col)
+	if v != 0 {
+		if subrow == 1 {
+			return string([]byte{' ', byte('0' + v), ' '})
+		}
+		return "   "
+	}
+	mask := b.Candidates[row][col]
+	start := subrow*3 + 1
+	var buf [3]byte
+	for i := range 3 {
+		d := start + i
+		if mask&bitFor(d) != 0 {
+			buf[i] = byte('0' + d)
+		} else {
+			buf[i] = '.'
+		}
+	}
+	return string(buf[:])
+}
+
+// Content width of one FormatWithPencilMarks row (between outer '+' borders).
+const pencilMarkGridInnerWidth = 41
+
+func (b Board) pencilMarkHorizontalRule() string {
+	return "+" + strings.Repeat("-", pencilMarkGridInnerWidth) + "+\n"
+}
+
+// FormatWithPencilMarks renders the grid with 3×3 pencil marks per empty cell
+// (digits present, '.' eliminated). Filled cells show only the placed digit on the center line of the cell block.
+func (b Board) FormatWithPencilMarks() string {
+	var sb strings.Builder
+	sb.WriteString(b.pencilMarkHorizontalRule())
+	for r := range 9 {
+		for sub := range 3 {
+			sb.WriteString("| ")
+			for c := range 9 {
+				sb.WriteString(b.pencilMarkLine(r, c, sub))
+				if c < 8 {
+					if c%3 == 2 {
+						sb.WriteString(" | ")
+					} else {
+						sb.WriteByte(' ')
+					}
+				}
+			}
+			sb.WriteString(" |\n")
+		}
+		if r < 8 && r%3 == 2 {
+			sb.WriteString(b.pencilMarkHorizontalRule())
+		}
+	}
+	sb.WriteString(b.pencilMarkHorizontalRule())
+	return sb.String()
+}

@@ -8,6 +8,8 @@ const (
 	TechniqueHiddenSingle
 	TechniqueNakedPair
 	TechniqueHiddenPair
+	TechniquePointing
+	TechniqueNakedTriple
 )
 
 type LogicSolveResult struct {
@@ -19,6 +21,8 @@ type LogicSolveResult struct {
 	hiddenSingleCount int
 	nakedPairCount    int
 	hiddenPairCount   int
+	pointingCount     int
+	nakedTripleCount  int
 	MaxTechnique      Technique
 	rounds            int
 }
@@ -80,6 +84,30 @@ func SolveByLogic(b Board) LogicSolveResult {
 			result.hiddenPairCount += n
 			if TechniqueHiddenPair > result.MaxTechnique {
 				result.MaxTechnique = TechniqueHiddenPair
+			}
+		}
+
+		for {
+			applied, n := puzzle.ApplyPointings()
+			if !applied {
+				break
+			}
+			progress = true
+			result.pointingCount += n
+			if TechniquePointing > result.MaxTechnique {
+				result.MaxTechnique = TechniquePointing
+			}
+		}
+
+		for {
+			applied, n := puzzle.ApplyNakedTriples()
+			if !applied {
+				break
+			}
+			progress = true
+			result.nakedTripleCount += n
+			if TechniqueNakedTriple > result.MaxTechnique {
+				result.MaxTechnique = TechniqueNakedTriple
 			}
 		}
 
