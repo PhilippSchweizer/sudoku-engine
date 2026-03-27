@@ -8,6 +8,8 @@ const (
 	TechniqueHiddenSingle
 	TechniqueNakedPair
 	TechniqueHiddenPair
+	TechniquePointing
+	TechniqueNakedTriple
 )
 
 type LogicSolveResult struct {
@@ -19,6 +21,8 @@ type LogicSolveResult struct {
 	hiddenSingleCount int
 	nakedPairCount    int
 	hiddenPairCount   int
+	pointingCount     int
+	nakedTripleCount  int
 	MaxTechnique      Technique
 	rounds            int
 }
@@ -46,33 +50,64 @@ func SolveByLogic(b Board) LogicSolveResult {
 	for !puzzle.IsSolved() {
 		progress := false
 
-		for puzzle.ApplyNakedSingle() {
+		for puzzle.ApplyNakedSingles() {
 			progress = true
 			result.nakedSingleCount++
 		}
 
-		for puzzle.ApplyHiddenSingle() {
+		for puzzle.ApplyHiddenSingles() {
 			progress = true
 			result.hiddenSingleCount++
-			// can it be avoided to run this on every iteration of the loop?
 			if TechniqueHiddenSingle > result.MaxTechnique {
 				result.MaxTechnique = TechniqueHiddenSingle
 			}
 		}
 
-		for puzzle.ApplyNakedPair() {
+		for {
+			applied, n := puzzle.ApplyNakedPairs()
+			if !applied {
+				break
+			}
 			progress = true
-			result.nakedPairCount++
+			result.nakedPairCount += n
 			if TechniqueNakedPair > result.MaxTechnique {
 				result.MaxTechnique = TechniqueNakedPair
 			}
 		}
 
-		for puzzle.ApplyHiddenPair() {
+		for {
+			applied, n := puzzle.ApplyHiddenPairs()
+			if !applied {
+				break
+			}
 			progress = true
-			result.hiddenPairCount++
+			result.hiddenPairCount += n
 			if TechniqueHiddenPair > result.MaxTechnique {
 				result.MaxTechnique = TechniqueHiddenPair
+			}
+		}
+
+		for {
+			applied, n := puzzle.ApplyPointings()
+			if !applied {
+				break
+			}
+			progress = true
+			result.pointingCount += n
+			if TechniquePointing > result.MaxTechnique {
+				result.MaxTechnique = TechniquePointing
+			}
+		}
+
+		for {
+			applied, n := puzzle.ApplyNakedTriples()
+			if !applied {
+				break
+			}
+			progress = true
+			result.nakedTripleCount += n
+			if TechniqueNakedTriple > result.MaxTechnique {
+				result.MaxTechnique = TechniqueNakedTriple
 			}
 		}
 
