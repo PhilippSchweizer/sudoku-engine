@@ -8,7 +8,7 @@ func TestApplyPointings_rowLocked(t *testing.T) {
 	b := New()
 	b.UpdateCandidates()
 	for _, rc := range [][2]int{{0, 2}, {1, 0}, {1, 1}, {1, 2}, {2, 0}, {2, 1}, {2, 2}} {
-		b.RemoveCandidate(rc[0], rc[1], 7)
+		b.stripCandidate(rc[0], rc[1], 7)
 	}
 
 	applied, n := b.ApplyPointings()
@@ -30,7 +30,7 @@ func TestApplyPointings_columnLocked(t *testing.T) {
 	b := New()
 	b.UpdateCandidates()
 	for _, rc := range [][2]int{{0, 1}, {0, 2}, {1, 1}, {1, 2}, {2, 1}, {2, 2}} {
-		b.RemoveCandidate(rc[0], rc[1], 4)
+		b.stripCandidate(rc[0], rc[1], 4)
 	}
 
 	applied, n := b.ApplyPointings()

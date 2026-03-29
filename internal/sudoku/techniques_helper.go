@@ -9,6 +9,6 @@ func (b *Board) removeCandidateIfPresent(row, col, val int) bool {
 	if !b.HasCandidate(row, col, val) {
 		return false
 	}
-	b.RemoveCandidate(row, col, val)
+	b.stripCandidate(row, col, val)
 	return true
 }
