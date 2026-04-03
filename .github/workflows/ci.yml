@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      # One test run covers all packages (engine + anything imported by sudoku-ssh).
+      - name: Test
+        run: go test ./... -count=1
+
+      # Droplet ships this binary; compile-check on every main merge.
+      - name: Build sudoku-ssh
+        run: go build -o /tmp/sudoku-ssh ./cmd/sudoku-ssh
