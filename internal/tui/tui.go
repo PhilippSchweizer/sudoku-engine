@@ -3,13 +3,16 @@ package tui
 import (
 	"fmt"
 	"image/color"
+	"math"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
 	"github.com/PhilippSchweizer/sudoku-engine/internal/sudoku"
+	"github.com/charmbracelet/harmonica"
 )
 
 type insertMode int
@@ -39,6 +42,9 @@ const (
 	titleFallbackMaxSidebarW = 25
 )
 
+// winAnimMsg drives the Harmonica spring for the win banner (60 FPS ticks).
+type winAnimMsg struct{}
+
 type model struct {
 	puzzle    sudoku.Board
 	current   sudoku.Board
@@ -50,6 +56,11 @@ type model struct {
 	sidebarW  int
 	slotCharW int
 	vp        viewport.Model
+
+	won       bool
+	winSpring harmonica.Spring
+	winMsgPos float64
+	winMsgVel float64
 }
 
 // Tokyo Night–inspired palette (https://github.com/enkia/tokyo-night-vscode-theme)
@@ -126,6 +137,7 @@ func newModel(puzzle, current sudoku.Board) *model {
 		sidebarW:  38,
 		slotCharW: 3,
 		vp:        vp,
+		winSpring: harmonica.NewSpring(harmonica.FPS(60), 5.5, 0.42),
 	}
 }
 
@@ -206,8 +218,36 @@ func (m *model) lineIndexOfSudokuRowTop(r int) int {
 	return y
 }
 
+func winTickCmd() tea.Cmd {
+	return tea.Tick(time.Second/60, func(time.Time) tea.Msg {
+		return winAnimMsg{}
+	})
+}
+
+// tryWin latches won and starts the win animation when the grid is solved.
+func (m *model) tryWin() tea.Cmd {
+	if m.won || !m.current.IsSolved() {
+		return nil
+	}
+	m.won = true
+	m.winMsgPos, m.winMsgVel = 0, 0
+	return winTickCmd()
+}
+
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case winAnimMsg:
+		if !m.won {
+			return m, nil
+		}
+		m.winMsgPos, m.winMsgVel = m.winSpring.Update(m.winMsgPos, m.winMsgVel, 1.0)
+		settled := math.Abs(m.winMsgPos-1) < 0.02 && math.Abs(m.winMsgVel) < 0.02
+		if settled {
+			m.winMsgPos, m.winMsgVel = 1, 0
+			return m, nil
+		}
+		return m, winTickCmd()
+
 	case tea.WindowSizeMsg:
 		m.termW = msg.Width
 		m.termH = msg.Height
@@ -223,6 +263,44 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		k := msg.String()
+		if m.won {
+			switch k {
+			case "q", "ctrl+c":
+				return m, tea.Quit
+			case "pgdown":
+				m.vp.PageDown()
+			case "pgup":
+				m.vp.PageUp()
+			case "up":
+				m.cursorRow = (m.cursorRow + 8) % 9
+			case "down":
+				m.cursorRow = (m.cursorRow + 1) % 9
+			case "left":
+				m.cursorCol = (m.cursorCol + 8) % 9
+			case "right":
+				m.cursorCol = (m.cursorCol + 1) % 9
+			case "k":
+				m.cursorRow = (m.cursorRow + 8) % 9
+			case "j":
+				m.cursorRow = (m.cursorRow + 1) % 9
+			case "h":
+				m.cursorCol = (m.cursorCol + 8) % 9
+			case "l":
+				m.cursorCol = (m.cursorCol + 1) % 9
+			case "w":
+				m.cursorCol = (m.cursorCol + 3) % 9
+			case "W":
+				m.cursorCol = (m.cursorCol + 6) % 9
+			case "e":
+				m.cursorRow = (m.cursorRow + 3) % 9
+			case "E":
+				m.cursorRow = (m.cursorRow + 6) % 9
+			}
+			m.vp.SetContent(m.renderBoardFlat())
+			m.syncViewportToCursor()
+			return m, nil
+		}
+		var winCmd tea.Cmd
 		switch k {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -281,33 +359,34 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				if ch >= '1' && ch <= '9' {
-					m.handleDigit(int(ch - '0'))
+					winCmd = m.handleDigit(int(ch - '0'))
 				}
 			}
 		}
 		m.vp.SetContent(m.renderBoardFlat())
 		m.syncViewportToCursor()
-		return m, nil
+		return m, winCmd
 	}
 	return m, nil
 }
 
-func (m *model) handleDigit(v int) {
+func (m *model) handleDigit(v int) tea.Cmd {
 	r, c := m.cursorRow, m.cursorCol
 	if m.puzzle.Cell(r, c) != 0 {
-		return
+		return nil
 	}
 	if m.current.Cell(r, c) != 0 {
 		if m.mode == modePencil {
-			return
+			return nil
 		}
 		m.current.ClearUserCell(r, c)
 		m.current.SetCellAndUpdateCandidates(r, c, v)
-		return
+		return m.tryWin()
 	}
 	switch m.mode {
 	case modeValue:
 		m.current.SetCellAndUpdateCandidates(r, c, v)
+		return m.tryWin()
 	case modePencil:
 		if m.current.HasCandidate(r, c, v) {
 			m.current.RemoveCandidate(r, c, v)
@@ -315,6 +394,7 @@ func (m *model) handleDigit(v int) {
 			m.current.AddCandidate(r, c, v)
 		}
 	}
+	return nil
 }
 
 func (m *model) widenPencilSubline(r, c, sub int) string {
@@ -552,6 +632,15 @@ func (m *model) renderSidebar() string {
 	}
 	title := renderSudokuTitle(w)
 	modeLine := titleStyle.Width(w).Align(lipgloss.Center).Render(fmt.Sprintf("[%s mode]", modeStr))
+	var winLine string
+	if m.won {
+		winLine = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(tnUser).
+			Width(w).
+			Align(lipgloss.Center).
+			Render("★ Sudoku solved! ★")
+	}
 	legendBox := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForegroundBlend(tnTitle, tnLegendGrad).
@@ -596,7 +685,22 @@ func (m *model) renderSidebar() string {
 			[]string{"quit", "q / Ctrl+C"},
 		)
 	leg := legendBox.Render(legendTbl.String())
+	if m.won {
+		return lipgloss.JoinVertical(lipgloss.Left, title, "", modeLine, "", winLine, "", leg)
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, title, "", modeLine, "", leg)
+}
+
+func (m *model) renderWinDialog() string {
+	line1 := lipgloss.NewStyle().Bold(true).Foreground(tnTitle).Render("Sudoku solved!")
+	line2 := lipgloss.NewStyle().Faint(true).Foreground(tnLegend).Render("Press q to quit")
+	block := lipgloss.JoinVertical(lipgloss.Center, line1, line2)
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(tnGridAccent).
+		Padding(0, 1).
+		Align(lipgloss.Center).
+		Render(block)
 }
 
 func (m *model) View() tea.View {
@@ -614,7 +718,21 @@ func (m *model) View() tea.View {
 	side := m.renderSidebar()
 	row := lipgloss.JoinHorizontal(lipgloss.Top, m.vp.View(), side)
 	out := lipgloss.Place(m.termW, m.termH, lipgloss.Left, lipgloss.Top, row)
-	v := tea.NewView(out)
+
+	final := out
+	if m.won {
+		win := m.renderWinDialog()
+		ww, wh := lipgloss.Size(win)
+		cx := (m.termW - ww) / 2
+		cy := (m.termH - wh) / 2
+		slide := int(math.Round((1.0 - m.winMsgPos) * float64(max(8, m.termW/5))))
+		final = lipgloss.NewCompositor(
+			lipgloss.NewLayer(out).X(0).Y(0).Z(0),
+			lipgloss.NewLayer(win).X(cx+slide).Y(cy).Z(1),
+		).Render()
+	}
+
+	v := tea.NewView(final)
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeCellMotion
 	return v
