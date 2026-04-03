@@ -144,3 +144,41 @@ func TestSetCellAndUpdateCandidates(t *testing.T) {
 		t.Error("Cell candidates in same row, column and box should have been updated.")
 	}
 }
+
+func TestFillCandidatesFromLegalRespectsForbidden(t *testing.T) {
+	b := New()
+	b.SetCell(0, 0, 1)
+	b.UpdateCandidates()
+	b.RemoveCandidate(1, 1, 5)
+	if b.HasCandidate(1, 1, 5) {
+		t.Fatal("RemoveCandidate should clear 5 from pencil marks")
+	}
+	b.FillCandidatesFromLegal()
+	if b.HasCandidate(1, 1, 5) {
+		t.Error("FillCandidatesFromLegal must not reinsert a player-forbidden digit")
+	}
+}
+
+func TestClearUserCellRestoresPeerCandidates(t *testing.T) {
+	b := New()
+	b.UpdateCandidates()
+	b.SetCellAndUpdateCandidates(0, 0, 1)
+	if b.HasCandidate(0, 1, 1) {
+		t.Fatal("peer (0,1) should not have 1 while (0,0) is 1")
+	}
+	b.ClearUserCell(0, 0)
+	if !b.HasCandidate(0, 1, 1) {
+		t.Error("after clearing (0,0), digit 1 should again be a legal candidate on (0,1)")
+	}
+}
+
+func TestClearUserCellRestoreBlockedByForbidden(t *testing.T) {
+	b := New()
+	b.UpdateCandidates()
+	b.SetCellAndUpdateCandidates(0, 0, 1)
+	b.RemoveCandidate(0, 1, 1)
+	b.ClearUserCell(0, 0)
+	if b.HasCandidate(0, 1, 1) {
+		t.Error("restore must not override player-forbidden elimination")
+	}
+}
