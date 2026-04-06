@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   go:
     runs-on: ubuntu-latest
@@ -21,6 +24,49 @@ jobs:
       - name: Test
         run: go test ./... -count=1
 
-      # Droplet ships this binary; compile-check on every main merge.
+      # Linux amd64 binary (matches typical DigitalOcean Droplet).
       - name: Build sudoku-ssh
-        run: go build -o /tmp/sudoku-ssh ./cmd/sudoku-ssh
+        run: GOOS=linux GOARCH=amd64 go build -o sudoku-ssh ./cmd/sudoku-ssh
+
+      - name: Upload binary for deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-ssh
+          path: sudoku-ssh
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to Droplet
+    runs-on: ubuntu-latest
+    needs: go
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sudoku-ssh
+
+      - name: Copy binary and restart service
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?set DEPLOY_HOST secret}"
+          : "${DEPLOY_USER:?set DEPLOY_USER secret}"
+          : "${DEPLOY_SSH_KEY:?set DEPLOY_SSH_KEY secret}"
+          PORT="${DEPLOY_PORT:-22}"
+
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          ssh-keyscan -p "$PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          SCP_OPTS=(-o StrictHostKeyChecking=yes -P "$PORT" -i ~/.ssh/deploy_key)
+          SSH_OPTS=(-o StrictHostKeyChecking=yes -p "$PORT" -i ~/.ssh/deploy_key)
+
+          scp "${SCP_OPTS[@]}" sudoku-ssh "${DEPLOY_USER}@${DEPLOY_HOST}:/tmp/sudoku-ssh"
+          ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'sudo /usr/bin/install -m 0755 /tmp/sudoku-ssh /usr/local/bin/sudoku-ssh && sudo /usr/bin/systemctl restart sudoku-ssh'
